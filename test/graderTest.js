@@ -1,6 +1,9 @@
 const assert = require('assert');
 const grader = require('../grader.js');
 const path = require('path');
+const http = require('http');
+const fs = require('fs');
+const { execSync } = require('child_process');
 
 const testHtml = path.join(__dirname, 'test.html');
 const testChecks = path.join(__dirname, 'test-checks.json');
@@ -16,4 +19,26 @@ const resultMissing = grader.checkHtmlFile(missingHtml, testChecks);
 
 assert.deepStrictEqual(resultMissing, expectedMissing);
 
-console.log('All tests passed.');
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(fs.readFileSync(testHtml));
+});
+
+server.listen(0, () => {
+  const port = server.address().port;
+  const url = `http://localhost:${port}`;
+  const cmd = `node ${path.join('..', 'grader.js')} -c ${testChecks} -u ${url}`;
+  const output = execSync(cmd);
+  const urlResult = JSON.parse(output.toString());
+  assert.deepStrictEqual(urlResult, expected);
+  server.close();
+
+  try {
+    execSync(`node ${path.join('..', 'grader.js')} -c ${testChecks} -u http://localhost:65530/`);
+    assert.fail('Expected command to fail');
+  } catch (err) {
+    assert.ok(err.status !== 0);
+  }
+
+  console.log('All tests passed.');
+});
