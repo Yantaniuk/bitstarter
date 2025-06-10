@@ -20,6 +20,11 @@ const resultMissing = grader.checkHtmlFile(missingHtml, testChecks);
 assert.deepStrictEqual(resultMissing, expectedMissing);
 
 const server = http.createServer((req, res) => {
+  if (req.url === '/missing') {
+    res.writeHead(404, { 'Content-Type': 'text/html' });
+    res.end('Not found');
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(fs.readFileSync(testHtml));
 });
@@ -27,18 +32,27 @@ const server = http.createServer((req, res) => {
 server.listen(0, () => {
   const port = server.address().port;
   const url = `http://localhost:${port}`;
-  const cmd = `node ${path.join('..', 'grader.js')} -c ${testChecks} -u ${url}`;
+  const graderPath = path.join(__dirname, '..', 'grader.js');
+  const cmd = `node ${graderPath} -c ${testChecks} -u ${url}`;
   const output = execSync(cmd);
   const urlResult = JSON.parse(output.toString());
   assert.deepStrictEqual(urlResult, expected);
-  server.close();
 
   try {
-    execSync(`node ${path.join('..', 'grader.js')} -c ${testChecks} -u http://localhost:65530/`);
+    execSync(`node ${graderPath} -c ${testChecks} -u ${url}/missing`);
     assert.fail('Expected command to fail');
   } catch (err) {
     assert.ok(err.status !== 0);
   }
+
+  try {
+    execSync(`node ${graderPath} -c ${testChecks} -u http://localhost:65530/`);
+    assert.fail('Expected command to fail');
+  } catch (err) {
+    assert.ok(err.status !== 0);
+  }
+
+  server.close();
 
   console.log('All tests passed.');
 });
