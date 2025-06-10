@@ -71,11 +71,16 @@ if(require.main == module) {
         .parse(process.argv);
     if (program.url) {
         rest.get(program.url).on('complete', function(data) {
-	    fs.writeFileSync(URL_FILE, data);
-	    var checkJson = checkHtmlFile(URL_FILE, program.checks);
+            if (data instanceof Error) {
+                console.error('Error fetching URL: ' + data.message);
+                process.exit(1);
+            }
+            fs.writeFileSync(URL_FILE, data);
+            var checkJson = checkHtmlFile(URL_FILE, program.checks);
             var outJson = JSON.stringify(checkJson, null, 4);
             console.log(outJson);
-            fs.writeFileSync(URL_FILE, "");});
+            fs.writeFileSync(URL_FILE, "");
+        });
     } else {
             var checkJson = checkHtmlFile(program.file, program.checks);
             var outJson = JSON.stringify(checkJson, null, 4);
