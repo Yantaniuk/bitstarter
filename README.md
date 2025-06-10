@@ -7,3 +7,9 @@ npm install
 ```
 
 This will install packages listed in `package.json`, including `commander`, `cheerio`, and `restler` which are used by `grader.js`.
+
+After installing dependencies, run the test suite with:
+
+```bash
+npm test
+```
